@@ -16,12 +16,26 @@ int main(int argc, char** argv)
 
     // Create a goal to send to the action server
     planning_msgs::JointPlanGoal goal;
-    // Fill in the goal with the desired joint trajectory or configuration
-    goal.goal_configuration = {1.0, 1.0, 0.0, 0.2, 1.3, 1.57};
-    goal.initial_configuration = {-1.0, 1.0, 0.0, 0.2, 1.3, 1.57};
-    // goal.initial_configuration = {-0.5, -0.5374493632429661, 0.06520185673784341, -2.189379671612611, 0.033515001883730244, 1.6528250384317584, 0.9420949765761668-1.0, 1.0, 0.0, 0.2, 1.3, 1.57, 0, 0};
+    // Load goal configuration from the parameter server
+    if (!ros::param::get("/joint_test_client/goal_configuration", goal.goal_configuration))
+    {
+        ROS_ERROR("Failed to load goal_configuration parameter.");
+        return 1;
+    }
 
-    goal.planning_group = "manipulator";
+    // Load initial configuration from the parameter server
+    if (!ros::param::get("/joint_test_client/initial_configuration", goal.initial_configuration))
+    {
+        ROS_ERROR("Failed to load initial_configuration parameter.");
+        return 1;
+    }
+
+    // Load planning group from the parameter server
+    if (!ros::param::get("/joint_test_client/planning_group", goal.planning_group))
+    {
+        ROS_ERROR("Failed to load planning_group parameter.");
+        return 1;
+    }
     // Send the goal to the action server
     ROS_INFO("Sending goal to JointPlan action server...");
     joint_plan_client.sendGoal(goal);
