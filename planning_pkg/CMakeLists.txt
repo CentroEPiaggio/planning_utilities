@@ -16,6 +16,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   trajectory_msgs
+  moveit_ros_planning 
+  moveit_ros_planning_interface
+  moveit_visual_tools
+  moveit_core
 )
 
 ## System dependencies are found with CMake's conventions
@@ -126,9 +130,31 @@ include_directories(
   ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-add_library(${PROJECT_NAME}
-   src/actions.cpp
+
+
+## Add your action server source files
+add_executable(planning_server src/actions.cpp src/planning_server.cpp)
+
+target_link_libraries(planning_server
+  ${catkin_LIBRARIES}
+)
+
+## Install the executable
+install(TARGETS planning_server
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
+## Add your action server source files
+add_executable(test_client src/actions.cpp src/test_client.cpp)
+
+target_link_libraries(test_client
+  ${catkin_LIBRARIES}
+)
+
+## Install the executable
+install(TARGETS test_client
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 ## Add cmake target dependencies of the library

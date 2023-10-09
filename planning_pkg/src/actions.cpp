@@ -29,6 +29,7 @@ void CartesianPlanActionServer::executeCallback(const planning_msgs::CartesianPl
     this->goal_pose = goal->goal_pose;
     this->initial_configuration = goal->initial_configuration;
     this->planning_group = goal->planning_group;
+    planning_msgs::CartesianPlanResult result;
 
     // Check for preemption before starting any computation
     if (this->isPreemptRequested())
@@ -50,16 +51,28 @@ void CartesianPlanActionServer::executeCallback(const planning_msgs::CartesianPl
     }
     else
     {
-        ROS_ERROR("Error: you need to specify a valid pose!!");
+        ROS_ERROR("Empty goal configuration");
+        action_server_.setAborted(result);
         return;
     }
 
     // Create a start state from the initial configuration if provided
     if (!this->isNullPose(this->initial_configuration))
     {
-        moveit::core::RobotStatePtr current_state = group.getCurrentState();
-        current_state->copyJointGroupPositions(joint_model_group, this->initial_configuration);
-        group.setStartState(*current_state);
+        ROS_INFO("Setting Initial Position");
+        if(joint_names.size() == this->initial_configuration.size())
+        {
+            moveit::core::RobotStatePtr current_state = group.getCurrentState();
+            current_state->setJointGroupPositions(this->planning_group,this->initial_configuration);
+            group.setStartState(*current_state);
+        }
+          else {
+            ROS_ERROR("WRONG SIZE: the number of joints in the goal is %zu, while it should be %zu", initial_configuration.size(), joint_names.size());
+            action_server_.setAborted(result);
+            return;
+
+        }
+
     }
     else
     {
@@ -67,6 +80,7 @@ void CartesianPlanActionServer::executeCallback(const planning_msgs::CartesianPl
         moveit::core::RobotStatePtr current_state = group.getCurrentState();
         group.setStartState(*current_state); // Use current_state here
     }
+
 
     // Plan the trajectory
     moveit::planning_interface::MoveGroupInterface::Plan plan;
@@ -80,14 +94,16 @@ void CartesianPlanActionServer::executeCallback(const planning_msgs::CartesianPl
     }
 
     // Create the result message
-    planning_msgs::CartesianPlanResult result;
     if (planning_result == moveit::planning_interface::MoveItErrorCode::SUCCESS)
     {
         result.planned_trajectory = plan.trajectory_;
     }
     else
     {
+        action_server_.setAborted(result);
         ROS_ERROR("Planning failed with error code: %d", planning_result.val);
+        return;
+
     }
 
     // Set the action result
@@ -111,6 +127,7 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
     this->goal_configuration = goal->goal_configuration;
     this->initial_configuration = goal->initial_configuration;
     this->planning_group = goal->planning_group;
+    for(auto &e : this->initial_configuration) std::cout << e << std::endl;
 
     // Check for preemption before starting any computation
     if (this->isPreemptRequested())
@@ -119,32 +136,54 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
         this->setPreempted();
         return;
     }
+    // Create the result message
+    planning_msgs::JointPlanResult result;
 
     // Initialize the MoveGroupInterface and joint model group
     moveit::planning_interface::MoveGroupInterface group(this->planning_group);
     const robot_state::JointModelGroup* joint_model_group =
         group.getCurrentState()->getJointModelGroup(this->planning_group);
-
+    auto joint_names = group.getJointNames();
     // Set the goal pose for planning
     if (!this->isNullPose(this->goal_configuration))
     {
-        group.setJointValueTarget(this->goal_configuration);
+        if(joint_names.size() == this->goal_configuration.size()) group.setJointValueTarget(this->goal_configuration);
+        else {
+            ROS_ERROR("WRONG SIZE: the number of joints in the goal is %zu, while it should be %zu", goal_configuration.size(), joint_names.size());
+            action_server_.setAborted(result);
+            return;
+
+        }
     }
     else
     {
+        ROS_ERROR("Empty goal configuration");
+        action_server_.setAborted(result);
         return;
     }
 
     // Create a start state from the initial configuration if provided
     if (!this->isNullPose(this->initial_configuration))
     {
-        moveit::core::RobotStatePtr current_state = group.getCurrentState();
-        current_state->copyJointGroupPositions(joint_model_group, this->initial_configuration);
-        group.setStartState(*current_state);
+        ROS_INFO("Setting Initial Position");
+        if(joint_names.size() == this->initial_configuration.size())
+        {
+            moveit::core::RobotStatePtr current_state = group.getCurrentState();
+            current_state->setJointGroupPositions(this->planning_group,this->initial_configuration);
+            group.setStartState(*current_state);
+        }
+          else {
+            ROS_ERROR("WRONG SIZE: the number of joints in the goal is %zu, while it should be %zu", initial_configuration.size(), joint_names.size());
+            action_server_.setAborted(result);
+            return;
+
+        }
+
     }
     else
     {
         // If initial_pose is null, set the start state to the current state
+        ROS_INFO("No intial position specified, using the current state");
         moveit::core::RobotStatePtr current_state = group.getCurrentState();
         group.setStartState(*current_state); // Use current_state here
     }
@@ -160,17 +199,18 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
         return;
     }
 
-    // Create the result message
-    planning_msgs::JointPlanResult result;
     if (planning_result == moveit::planning_interface::MoveItErrorCode::SUCCESS)
     {
         result.planned_trajectory = plan.trajectory_;
     }
     else
     {
+        action_server_.setAborted(result);
         ROS_ERROR("Planning failed with error code: %d", planning_result.val);
+        return;
     }
 
     // Set the action result
     action_server_.setSucceeded(result);
+    return;
 }

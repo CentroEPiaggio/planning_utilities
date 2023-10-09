@@ -19,9 +19,9 @@ public:
         action_server_.start();
     }
 
-    // Virtual method to be implemented by derived classes
-    virtual void executeCallback(const planning_msgs::CartesianPlanGoalConstPtr &goal) = 0;
-    ~CartesianPlanActionServer();
+    void executeCallback(const planning_msgs::CartesianPlanGoalConstPtr &goal);
+    
+    ~CartesianPlanActionServer() {};
 
 protected:
     ros::NodeHandle nh_;
@@ -88,9 +88,8 @@ public:
         action_server_.start();
     }
 
-    // Virtual method to be implemented by derived classes
-    virtual void executeCallback(const typename planning_msgs::JointPlanGoalConstPtr &goal) = 0;
-    ~JointPlanActionServer();
+    void executeCallback(const typename planning_msgs::JointPlanGoalConstPtr &goal);
+    ~JointPlanActionServer() {};
 
 protected:
     ros::NodeHandle nh_;
