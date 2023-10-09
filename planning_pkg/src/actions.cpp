@@ -43,6 +43,7 @@ void CartesianPlanActionServer::executeCallback(const planning_msgs::CartesianPl
     moveit::planning_interface::MoveGroupInterface group(this->planning_group);
     const robot_state::JointModelGroup* joint_model_group =
         group.getCurrentState()->getJointModelGroup(this->planning_group);
+    auto joint_names = group.getJointNames();
 
     // Set the goal pose for planning
     if (!this->isNullPose(this->goal_pose))
@@ -212,5 +213,4 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
 
     // Set the action result
     action_server_.setSucceeded(result);
-    return;
 }

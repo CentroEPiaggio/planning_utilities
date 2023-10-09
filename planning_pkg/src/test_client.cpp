@@ -17,11 +17,11 @@ int main(int argc, char** argv)
     // Create a goal to send to the action server
     planning_msgs::JointPlanGoal goal;
     // Fill in the goal with the desired joint trajectory or configuration
-    goal.goal_configuration = {1.0, 1.0, 0.0, 0.2, 1.3, 1.57, 0, 0.06};
-    // goal.initial_configuration = {-1.0, 1.0, 0.0, 0.2, 1.3, 1.57, 0};
-    goal.initial_configuration = {-0.5, -0.5374493632429661, 0.06520185673784341, -2.189379671612611, 0.033515001883730244, 1.6528250384317584, 0.9420949765761668-1.0, 1.0, 0.0, 0.2, 1.3, 1.57, 0, 0};
+    goal.goal_configuration = {1.0, 1.0, 0.0, 0.2, 1.3, 1.57};
+    goal.initial_configuration = {-1.0, 1.0, 0.0, 0.2, 1.3, 1.57};
+    // goal.initial_configuration = {-0.5, -0.5374493632429661, 0.06520185673784341, -2.189379671612611, 0.033515001883730244, 1.6528250384317584, 0.9420949765761668-1.0, 1.0, 0.0, 0.2, 1.3, 1.57, 0, 0};
 
-    goal.planning_group = "panda_manipulator";
+    goal.planning_group = "manipulator";
     // Send the goal to the action server
     ROS_INFO("Sending goal to JointPlan action server...");
     joint_plan_client.sendGoal(goal);
