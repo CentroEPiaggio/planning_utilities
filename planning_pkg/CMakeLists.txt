@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(planning_pkg)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -148,6 +148,8 @@ install(TARGETS planning_server
 ## Add your action server source files
 add_executable(test_client src/actions.cpp src/test_client.cpp)
 
+
+
 target_link_libraries(test_client
   ${catkin_LIBRARIES}
 )
@@ -157,6 +159,16 @@ install(TARGETS test_client
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
+add_executable(task_planner src/actions.cpp src/task_planner_node.cpp)
+
+target_link_libraries(task_planner
+  ${catkin_LIBRARIES}
+)
+
+## Install the executable
+install(TARGETS task_planner
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
