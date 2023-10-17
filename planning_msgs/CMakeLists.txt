@@ -74,6 +74,7 @@ add_action_files(
    JointPlan.action
    Grasp.action
    Release.action
+   ExecutePlan.action
  )
 
 ## Generate added messages and services with any dependencies listed here
