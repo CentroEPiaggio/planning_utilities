@@ -111,12 +111,12 @@ int main(int argc, char** argv)
     // Create shared pointers for action clients
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>> cartesian_client;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::JointPlanAction>> joint_client;
-//    std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>> execute_client;
+    std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>> execute_client;
 
     // Wait for action servers to start
     cartesian_client.reset(new actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>("cartesian_plan_action", true));
     joint_client.reset(new actionlib::SimpleActionClient<planning_msgs::JointPlanAction>("joint_plan_action", true));
-//    execute_client.reset(new actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>("execute_plan_action", true));
+    execute_client.reset(new actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>("execute_plan_action", true));
 
     if (!cartesian_client->waitForServer(ros::Duration(5.0)) ||
         !joint_client->waitForServer(ros::Duration(5.0)))
@@ -146,27 +146,33 @@ int main(int argc, char** argv)
                     if (cartesian_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
                     {
                         ROS_INFO("Cartesian plan succeeded.");
-                        /*
+                        
                         if(is_executing) 
                         {
                             execute_client->waitForResult();
                             if (execute_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) 
                             {
                                 // Set new goal
-                                // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
-                                // execute_client->sendGoal(execute_goal);
+                                execute_client::ExecutePlanGoal execute_goal;
+                                execute_goal.move_group_name = cartesian_goal.planning_group; 
+                                execute_goal.motion_plan = cartesian_client->getResult()->planned_trajectory;
+                                execute_client->sendGoal(execute_goal);
                             }
                             else 
                             {
                                 // RAISE EXCEPTION
+                                ROS_ERROR("Execution FAILED!");
+                                return 1;
                             }
                         }
                         else
                         {
                             is_executing = true;
                             // Set new goal
-                            // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
-                            // execute_client->sendGoal(execute_goal);
+                            execute_client::ExecutePlanGoal execute_goal;
+                            execute_goal.move_group_name = cartesian_goal.planning_group; 
+                            execute_goal.motion_plan = cartesian_client->getResult()->planned_trajectory;
+                            execute_client->sendGoal(execute_goal);
                         }
                         */
                     }
@@ -186,16 +192,16 @@ int main(int argc, char** argv)
                     if (joint_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
                     {
                         ROS_INFO("Joint plan succeeded.");
-                        /*
+                        
                         if(is_executing) 
                         {
                             execute_client->waitForResult();
                             if (execute_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) 
                             {
-                                // Set new goal
-                                // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
-                                // execute_client->sendGoal(execute_goal);
-                            }
+                                execute_client::ExecutePlanGoal execute_goal;
+                                execute_goal.move_group_name = joint_goal.planning_group; 
+                                execute_goal.motion_plan = joint_client->getResult()->planned_trajectory;
+                                execute_client->sendGoal(execute_goal);                            }
                             else 
                             {
                                 // RAISE EXCEPTION
@@ -205,10 +211,11 @@ int main(int argc, char** argv)
                         {
                             is_executing = true;
                             // Set new goal
-                            // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
-                            // execute_client->sendGoal(execute_goal);
-                        }
-                        */
+                            execute_client::ExecutePlanGoal execute_goal;
+                            execute_goal.move_group_name = joint_goal.planning_group; 
+                            execute_goal.motion_plan = joint_client->getResult()->planned_trajectory;
+                            execute_client->sendGoal(execute_goal);                          }
+                        
                     }
                     else
                     {
