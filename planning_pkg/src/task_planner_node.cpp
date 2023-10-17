@@ -201,7 +201,8 @@ int main(int argc, char** argv)
                                 execute_client::ExecutePlanGoal execute_goal;
                                 execute_goal.move_group_name = joint_goal.planning_group; 
                                 execute_goal.motion_plan = joint_client->getResult()->planned_trajectory;
-                                execute_client->sendGoal(execute_goal);                            }
+                                execute_client->sendGoal(execute_goal);                            
+                            }
                             else 
                             {
                                 // RAISE EXCEPTION
@@ -214,7 +215,8 @@ int main(int argc, char** argv)
                             execute_client::ExecutePlanGoal execute_goal;
                             execute_goal.move_group_name = joint_goal.planning_group; 
                             execute_goal.motion_plan = joint_client->getResult()->planned_trajectory;
-                            execute_client->sendGoal(execute_goal);                          }
+                            execute_client->sendGoal(execute_goal);                          
+                        }
                         
                     }
                     else
