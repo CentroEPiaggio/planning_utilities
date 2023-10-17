@@ -6,6 +6,7 @@
 #include <planning_msgs/JointPlanAction.h>
 #include <planning_msgs/GraspAction.h>
 #include <planning_msgs/ReleaseAction.h>
+#include <planning_msgs/ExecutePlanAction.h>
 #include <Eigen/Dense>
 
 // Base class for Cartesian Plan Action Server
@@ -137,6 +138,29 @@ protected:
         // return true; // All values are zero, considered null
     }
 };
+
+
+class ExecutePlanActionServer {
+public:
+    ExecutePlanActionServer(ros::NodeHandle nh) :
+        nh_(nh),
+        action_server_(nh_, "execute_plan", boost::bind(&ExecutePlanActionServer::executeCallback, this, _1), false)
+    {
+        action_server_.start();
+    }
+
+    void executeCallback(const planning_msgs::ExecutePlanGoalConstPtr &goal);
+
+    void doneCallback(const actionlib::SimpleClientGoalState& state) {
+        ROS_INFO("Trajectory execution completed with result: %s", state.toString().c_str());
+        // You can perform additional actions or publish feedback here
+    }
+
+private:
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<planning_msgs::ExecutePlanAction> action_server_;
+};
+
 
 // Uncomment and implement GraspActionServer as needed
 // class GraspActionServer : public ActionServerBase<planning_msgs::GraspAction>
