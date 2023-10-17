@@ -214,3 +214,26 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
     // Set the action result
     action_server_.setSucceeded(result);
 }
+
+
+
+    void ExecutePlanActionServer::executeCallback(const planning_msgs::ExecutePlanGoalConstPtr &goal) { // Change the message type to your custom action
+        std::string move_group_name = goal->move_group_name;
+        ROS_INFO("Received goal for MoveGroup: %s", move_group_name.c_str());
+
+        // Extract the Plan from the custom action request
+        const moveit_msgs::RobotTrajectory& robot_traj = goal->motion_plan;
+
+        // Create a Plan from the RobotTrajectory
+        moveit::core::RobotModelConstPtr robot_model = moveit::planning_interface::getRobotModel();
+        moveit::planning_interface::MoveGroupInterface::Plan plan;
+        robot_trajectory::RobotTrajectory rt(robot_model, move_group_name);
+        rt.setRobotTrajectoryMsg(*robot_model, robot_traj);
+        rt.getRobotTrajectoryMsg(robot_traj);
+        plan.trajectory_ = robot_traj;
+
+        // Use MoveIt to execute the Plan asynchronously
+        moveit::planning_interface::MoveGroupInterface move_group(move_group_name);
+        move_group.asyncExecute(plan, boost::bind(&ExecutePlanActionServer::doneCallback, this, _1));
+    }
+
