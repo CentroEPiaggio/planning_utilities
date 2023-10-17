@@ -27,7 +27,7 @@ public:
             ros::shutdown();
         }
     }
-
+    std::vector<double> last_planned_configuration;
     /**
      * @brief Parse a Pose from XML-RPC data.
      * 
@@ -63,12 +63,10 @@ public:
                     cartesian_goal.goal_pose = parsePose(task_param["goal"]);
                 }
 
-                if (task_param.hasMember("initial") && task_param["initial"].getType() == XmlRpc::XmlRpcValue::TypeArray) {
-                    for (int i = 0; i < task_param["initial"].size(); ++i) {
-                        if (task_param["initial"][i].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
-                            double value = static_cast<double>(task_param["initial"][i]);
-                            cartesian_goal.initial_configuration.push_back(value);
-                        }
+                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBool) {
+                    bool task_merge = static_cast<bool>(task_param["merge"]);
+                    if(task_merge){
+                        cartesian_goal.initial_configuration = this->last_planned_configuration;
                     }
                 }
 
@@ -90,13 +88,11 @@ public:
                     }
                 }
 
-                if (task_param.hasMember("initial") && task_param["initial"].getType() == XmlRpc::XmlRpcValue::TypeArray) {
-                    for (int i = 0; i < task_param["initial"].size(); ++i) {
-                        if (task_param["initial"][i].getType() == XmlRpc::XmlRpcValue::TypeDouble) {
-                            double value = static_cast<double>(task_param["initial"][i]);
-                            joint_goal.initial_configuration.push_back(value);
-                        }
-                    }
+                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBool) {
+                    bool task_merge = static_cast<bool>(task_param["merge"]);
+                    if(task_merge){
+                        joint_goal.initial_configuration = this->last_planned_configuration;
+                    }                
                 }
 
                 if (task_param.hasMember("group")) {
@@ -124,6 +120,7 @@ public:
 
             if (cartesian_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_INFO("Cartesian plan succeeded.");
+                last_planned_configuration = cartesian_client_->getResult()->planned_trajectory.joint_trajectory.position.back();
                 handleExecution(cartesian_goal.planning_group, *cartesian_client_);
             } else {
                 ROS_ERROR("Cartesian plan failed.");
@@ -136,6 +133,7 @@ public:
 
             if (joint_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_INFO("Joint plan succeeded.");
+                last_planned_configuration = joint_client_->getResult()->planned_trajectory.joint_trajectory.position.back();
                 handleExecution(joint_goal.planning_group, *joint_client_);
             } else {
                 ROS_ERROR("Joint plan failed.");
