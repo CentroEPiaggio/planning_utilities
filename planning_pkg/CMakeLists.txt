@@ -144,20 +144,8 @@ install(TARGETS planning_server
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-
+add_dependencies(planning_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} planning_msgs_generate_messages_cpp)
 ## Add your action server source files
-add_executable(test_client src/actions.cpp src/test_client.cpp)
-
-
-
-target_link_libraries(test_client
-  ${catkin_LIBRARIES}
-)
-
-## Install the executable
-install(TARGETS test_client
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 add_executable(task_planner src/actions.cpp src/task_planner_node.cpp)
 
@@ -169,6 +157,9 @@ target_link_libraries(task_planner
 install(TARGETS task_planner
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+add_dependencies(task_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} planning_msgs_generate_messages_cpp)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
