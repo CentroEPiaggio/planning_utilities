@@ -27,7 +27,6 @@ public:
             ros::shutdown();
         }
     }
-    std::vector<double> last_planned_configuration;
     /**
      * @brief Parse a Pose from XML-RPC data.
      * 
@@ -149,6 +148,7 @@ public:
 private:
     ros::NodeHandle& nh_;
     bool is_executing_;
+    std::vector<double> last_planned_configuration;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>> cartesian_client_;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::JointPlanAction>> joint_client_;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>> execute_client_;
