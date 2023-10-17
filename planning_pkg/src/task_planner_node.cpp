@@ -174,7 +174,7 @@ int main(int argc, char** argv)
                             execute_goal.motion_plan = cartesian_client->getResult()->planned_trajectory;
                             execute_client->sendGoal(execute_goal);
                         }
-                        */
+                        
                     }
                     else
                     {
