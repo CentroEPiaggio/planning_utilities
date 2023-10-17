@@ -111,10 +111,12 @@ int main(int argc, char** argv)
     // Create shared pointers for action clients
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>> cartesian_client;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::JointPlanAction>> joint_client;
+//    std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>> execute_client;
 
     // Wait for action servers to start
     cartesian_client.reset(new actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>("cartesian_plan_action", true));
     joint_client.reset(new actionlib::SimpleActionClient<planning_msgs::JointPlanAction>("joint_plan_action", true));
+//    execute_client.reset(new actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>("execute_plan_action", true));
 
     if (!cartesian_client->waitForServer(ros::Duration(5.0)) ||
         !joint_client->waitForServer(ros::Duration(5.0)))
@@ -122,7 +124,7 @@ int main(int argc, char** argv)
         ROS_ERROR("One or more action servers did not start within the timeout.");
         return 1;
     }
-
+    bool is_executing = false;
     // Retrieve the task list from the ROS parameter server as XML-RPC data
     XmlRpc::XmlRpcValue task_list;
     if (nh.getParam("/tasks", task_list))
@@ -144,6 +146,29 @@ int main(int argc, char** argv)
                     if (cartesian_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
                     {
                         ROS_INFO("Cartesian plan succeeded.");
+                        /*
+                        if(is_executing) 
+                        {
+                            execute_client->waitForResult();
+                            if (execute_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) 
+                            {
+                                // Set new goal
+                                // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
+                                // execute_client->sendGoal(execute_goal);
+                            }
+                            else 
+                            {
+                                // RAISE EXCEPTION
+                            }
+                        }
+                        else
+                        {
+                            is_executing = true;
+                            // Set new goal
+                            // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
+                            // execute_client->sendGoal(execute_goal);
+                        }
+                        */
                     }
                     else
                     {
@@ -161,6 +186,29 @@ int main(int argc, char** argv)
                     if (joint_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
                     {
                         ROS_INFO("Joint plan succeeded.");
+                        /*
+                        if(is_executing) 
+                        {
+                            execute_client->waitForResult();
+                            if (execute_client->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) 
+                            {
+                                // Set new goal
+                                // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
+                                // execute_client->sendGoal(execute_goal);
+                            }
+                            else 
+                            {
+                                // RAISE EXCEPTION
+                            }
+                        }
+                        else
+                        {
+                            is_executing = true;
+                            // Set new goal
+                            // execute_client::ExecutePlanGoal execute_goal = TO IMPLEMENT
+                            // execute_client->sendGoal(execute_goal);
+                        }
+                        */
                     }
                     else
                     {
