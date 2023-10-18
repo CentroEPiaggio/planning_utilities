@@ -128,7 +128,6 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
     this->goal_configuration = goal->goal_configuration;
     this->initial_configuration = goal->initial_configuration;
     this->planning_group = goal->planning_group;
-    for(auto &e : this->initial_configuration) std::cout << e << std::endl;
 
     // Check for preemption before starting any computation
     if (this->isPreemptRequested())
@@ -220,20 +219,26 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
     void ExecutePlanActionServer::executeCallback(const planning_msgs::ExecutePlanGoalConstPtr &goal) { // Change the message type to your custom action
         std::string move_group_name = goal->move_group_name;
         ROS_INFO("Received goal for MoveGroup: %s", move_group_name.c_str());
+        planning_msgs::ExecutePlanResult result;
 
         // Extract the Plan from the custom action request
         const moveit_msgs::RobotTrajectory& robot_traj = goal->motion_plan;
 
-        // Create a Plan from the RobotTrajectory
-        moveit::core::RobotModelConstPtr robot_model = moveit::planning_interface::getRobotModel();
-        moveit::planning_interface::MoveGroupInterface::Plan plan;
-        robot_trajectory::RobotTrajectory rt(robot_model, move_group_name);
-        rt.setRobotTrajectoryMsg(*robot_model, robot_traj);
-        rt.getRobotTrajectoryMsg(robot_traj);
-        plan.trajectory_ = robot_traj;
+        // // Create a Plan from the RobotTrajectory
+        // moveit::planning_interface::MoveGroupInterface group(this->planning_group);
+        // moveit::planning_interface::MoveGroupInterface::Plan plan;
+        // plan.trajectory_ = robot_traj;
 
         // Use MoveIt to execute the Plan asynchronously
         moveit::planning_interface::MoveGroupInterface move_group(move_group_name);
-        move_group.asyncExecute(plan, boost::bind(&ExecutePlanActionServer::doneCallback, this, _1));
+        moveit::core::MoveItErrorCode exec_result = move_group.execute(robot_traj);
+        
+        if (exec_result == moveit::planning_interface::MoveItErrorCode::SUCCESS)
+            action_server_.setSucceeded(result);
+        else {
+            action_server_.setAborted(result);
+            ROS_ERROR("Planning failed with error code: %d", exec_result.val);
+            return;
+        }
     }
 

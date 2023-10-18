@@ -2,20 +2,27 @@
 #include <XmlRpcValue.h>
 #include "planning_pkg/actions.h"
 #include <variant>
+#include <queue>
 #include <actionlib/client/simple_action_client.h>
+#include <thread>
+#include <chrono>
 
 // Define a variant type for task parameters
-using TaskParameters = std::variant<planning_msgs::CartesianPlanGoal, planning_msgs::JointPlanGoal>;
-
+using PlanningGoal = std::variant<std::monostate, planning_msgs::CartesianPlanGoal, planning_msgs::JointPlanGoal>;
 /**
  * @brief Class to handle task execution using ROS action clients.
  */
 class TaskHandler {
 public:
-    // Constructor with initialization list
+    /**
+     * @brief Constructor for TaskHandler.
+     *
+     * @param nh Reference to the ROS NodeHandle.
+     */
     TaskHandler(ros::NodeHandle& nh)
         : nh_(nh),
           is_executing_(false),
+          last_planned_configuration_(nullptr), // Initialize as nullptr
           cartesian_client_(new actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>("cartesian_plan_action", true)),
           joint_client_(new actionlib::SimpleActionClient<planning_msgs::JointPlanAction>("joint_plan_action", true)),
           execute_client_(new actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>("execute_plan_action", true)) {
@@ -26,10 +33,19 @@ public:
             ROS_ERROR("One or more action servers did not start within the timeout.");
             ros::shutdown();
         }
+        execution_thread_ = std::thread(&TaskHandler::handleExecution, this);
     }
+
+    /**
+     * @brief Destructor for TaskHandler, joins the execution thread.
+     */
+    ~TaskHandler() {
+        execution_thread_.join();
+    }
+
     /**
      * @brief Parse a Pose from XML-RPC data.
-     * 
+     *
      * @param pose_param XML-RPC data containing pose information.
      * @return Parsed geometry_msgs::Pose.
      */
@@ -47,11 +63,11 @@ public:
 
     /**
      * @brief Convert YAML data to a task parameter variant.
-     * 
+     *
      * @param task_param XML-RPC data containing task parameters.
-     * @return TaskParameters variant representing the task goal.
+     * @return PlanningGoal variant representing the task goal.
      */
-    TaskParameters convertYamlToGoal(const XmlRpc::XmlRpcValue& task_param) {
+    PlanningGoal convertYamlToGoal(const XmlRpc::XmlRpcValue& task_param) {
         if (task_param.hasMember("type")) {
             std::string task_type = static_cast<std::string>(task_param["type"]);
 
@@ -61,16 +77,29 @@ public:
                 if (task_param.hasMember("goal")) {
                     cartesian_goal.goal_pose = parsePose(task_param["goal"]);
                 }
+                else {
+                    ROS_ERROR("No goal specified!");
+                    return std::monostate{}; // Return an empty variant in case of an error
+                }
 
-                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBool) {
-                    bool task_merge = static_cast<bool>(task_param["merge"]);
-                    if(task_merge){
-                        cartesian_goal.initial_configuration = this->last_planned_configuration;
+                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBoolean) {
+                    if(static_cast<bool>(task_param["merge"])){
+                        if (last_planned_configuration_) {
+                            cartesian_goal.initial_configuration = *last_planned_configuration_; // Use the shared vector
+                        } else {
+                            ROS_ERROR("No previous configuration available for merge.");
+                            return std::monostate{}; // Return an empty variant in case of an error
+                        }
                     }
                 }
 
+
                 if (task_param.hasMember("group")) {
                     cartesian_goal.planning_group = static_cast<std::string>(task_param["group"]);
+                }
+                else {
+                    ROS_ERROR("No group specified!");
+                    return std::monostate{}; // Return an empty variant in case of an error
                 }
 
                 return cartesian_goal;
@@ -86,16 +115,28 @@ public:
                         }
                     }
                 }
+                else {
+                    ROS_ERROR("No goal specified!");
+                    return std::monostate{}; // Return an empty variant in case of an error
+                }
 
-                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBool) {
-                    bool task_merge = static_cast<bool>(task_param["merge"]);
-                    if(task_merge){
-                        joint_goal.initial_configuration = this->last_planned_configuration;
-                    }                
+                if (task_param.hasMember("merge") && task_param["merge"].getType() == XmlRpc::XmlRpcValue::TypeBoolean) {
+                    if(static_cast<bool>(task_param["merge"])){
+                        if (last_planned_configuration_) {
+                            joint_goal.initial_configuration = *last_planned_configuration_; // Use the shared vector
+                        } else {
+                            ROS_ERROR("No previous configuration available for merge.");
+                            return std::monostate{}; // Return an empty variant in case of an error
+                        }
+                    }
                 }
 
                 if (task_param.hasMember("group")) {
                     joint_goal.planning_group = static_cast<std::string>(task_param["group"]);
+                }
+                else {
+                    ROS_ERROR("No group specified!");
+                    return std::monostate{}; // Return an empty variant in case of an error
                 }
 
                 return joint_goal;
@@ -103,15 +144,20 @@ public:
         }
 
         ROS_ERROR("Wrong task parameters!");
-        return TaskParameters(); // Return an empty variant in case of an error
+        return std::monostate{}; // Return an empty variant in case of an error
     }
 
     /**
      * @brief Execute a task based on the provided goal.
-     * 
+     *
      * @param goal Task parameters as a variant type.
      */
-    void executePlan(const TaskParameters& goal) {
+    bool plan(const PlanningGoal& goal) {
+        if (std::holds_alternative<std::monostate>(goal)) {            
+            ROS_ERROR("Planning goal is invalid.");
+            ros::shutdown();
+            return false;
+        }
         if (std::holds_alternative<planning_msgs::CartesianPlanGoal>(goal)) {
             planning_msgs::CartesianPlanGoal cartesian_goal = std::get<planning_msgs::CartesianPlanGoal>(goal);
             cartesian_client_->sendGoal(cartesian_goal);
@@ -119,11 +165,16 @@ public:
 
             if (cartesian_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_INFO("Cartesian plan succeeded.");
-                last_planned_configuration = cartesian_client_->getResult()->planned_trajectory.joint_trajectory.position.back();
-                handleExecution(cartesian_goal.planning_group, *cartesian_client_);
+                planning_msgs::CartesianPlanResultConstPtr plan_result = cartesian_client_->getResult();
+                trajectory_msgs::JointTrajectory planned_joint_traj = plan_result->planned_trajectory.joint_trajectory;
+                last_planned_configuration_ = std::make_unique<std::vector<double>>(planned_joint_traj.points.back().positions);  
+                planning_msgs::ExecutePlanGoal execute_goal;
+                execute_goal.motion_plan = plan_result->planned_trajectory;
+                execute_goal.move_group_name = cartesian_goal.planning_group;
+                execute_goal_queue.push(execute_goal);
             } else {
                 ROS_ERROR("Cartesian plan failed.");
-                ros::shutdown();
+                return false;
             }
         } else if (std::holds_alternative<planning_msgs::JointPlanGoal>(goal)) {
             planning_msgs::JointPlanGoal joint_goal = std::get<planning_msgs::JointPlanGoal>(goal);
@@ -132,46 +183,71 @@ public:
 
             if (joint_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
                 ROS_INFO("Joint plan succeeded.");
-                last_planned_configuration = joint_client_->getResult()->planned_trajectory.joint_trajectory.position.back();
-                handleExecution(joint_goal.planning_group, *joint_client_);
+                planning_msgs::JointPlanResultConstPtr plan_result = joint_client_->getResult();
+                trajectory_msgs::JointTrajectory planned_joint_traj = plan_result->planned_trajectory.joint_trajectory;
+                last_planned_configuration_ = std::make_unique<std::vector<double>>(planned_joint_traj.points.back().positions);  
+                planning_msgs::ExecutePlanGoal execute_goal;
+                execute_goal.motion_plan = plan_result->planned_trajectory;
+                execute_goal.move_group_name = joint_goal.planning_group;
+                execute_goal_queue.push(execute_goal);
             } else {
                 ROS_ERROR("Joint plan failed.");
-                ros::shutdown();
+                return false;
             }
         } else {
-                ROS_ERROR("Unexpected Plan TYPE!");
-                ros::shutdown();
+            ROS_ERROR("Unexpected Plan TYPE!");
+            return false;
         }
 
+        return true;
+    }
+    bool isExecutionQueueEmpty(){
+        return execute_goal_queue.empty();
+    }
+    bool isExecutionThreadRunning(){
+        return run_thread;
     }
 
 private:
     ros::NodeHandle& nh_;
     bool is_executing_;
-    std::vector<double> last_planned_configuration;
+    bool run_thread = true;
+    std::queue<std::vector<double>> last_planned_configuration;
+    std::queue<planning_msgs::ExecutePlanGoal> execute_goal_queue;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::CartesianPlanAction>> cartesian_client_;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::JointPlanAction>> joint_client_;
     std::shared_ptr<actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>> execute_client_;
+    std::unique_ptr<std::vector<double>> last_planned_configuration_; // Use a shared pointer with a vector
+    std::thread execution_thread_;
 
-    void handleExecution(const std::string& planning_group, actionlib::SimpleActionClient<planning_msgs::ExecutePlanAction>& client) {
-        if (is_executing_) {
-            client.waitForResult();
-            if (client.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-                planning_msgs::ExecutePlanGoal execute_goal;
-                execute_goal.move_group_name = planning_group;
-                execute_goal.motion_plan = client.getResult()->planned_trajectory;
-                execute_client_->sendGoal(execute_goal);
+    /**
+     * @brief Handle task execution in a separate thread.
+     */
+    void handleExecution() {
+        while (ros::ok() && run_thread) {
+            if (!execute_goal_queue.empty()) {
+                if (is_executing_) {
+                    execute_client_->waitForResult();
+                    if (execute_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+                        planning_msgs::ExecutePlanGoal execute_goal = execute_goal_queue.front();
+                        execute_goal_queue.pop();
+                        execute_client_->sendGoal(execute_goal);
+                    } else {
+                        ROS_ERROR("Execution failed.");
+                        run_thread = false;
+                    }
+                } else {
+                    planning_msgs::ExecutePlanGoal execute_goal = execute_goal_queue.front();
+                    execute_goal_queue.pop();
+                    execute_client_->sendGoal(execute_goal);
+                    is_executing_ = true;
+                }
             } else {
-                ROS_ERROR("Execution FAILED!");
-                ros::shutdown();
+                // Sleep for a while if the queue is empty to avoid busy-waiting
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-        } else {
-            is_executing_ = true;
-            planning_msgs::ExecutePlanGoal execute_goal;
-            execute_goal.move_group_name = planning_group;
-            execute_goal.motion_plan = client.getResult()->planned_trajectory;
-            execute_client_->sendGoal(execute_goal);
         }
+        std::cout << "Killing the thread" << std::endl;
     }
 };
 
@@ -186,8 +262,8 @@ int main(int argc, char** argv) {
         if (task_list.size() > 0) {
             for (int i = 0; i < task_list.size(); ++i) {
                 XmlRpc::XmlRpcValue task = task_list[i];
-                TaskParameters goal = task_handler.convertYamlToGoal(task);
-                task_handler.executePlan(goal);
+                PlanningGoal planning_goal = task_handler.convertYamlToGoal(task);
+                if(!task_handler.plan(planning_goal)) break;
             }
         } else {
             ROS_ERROR("Task List is Empty!");
@@ -197,5 +273,10 @@ int main(int argc, char** argv) {
         ROS_ERROR("Failed to retrieve the /task_list parameter from the parameter server.");
         return 1;
     }
+    while(!task_handler.isExecutionQueueEmpty() && task_handler.isExecutionThreadRunning()){
+        ros::spinOnce();  // Allow ROS to process callbacks
+        ros::Duration(0.1).sleep();  // Sleep for a while
+    }
+    nh.shutdown();
     return 0;
 }

@@ -142,9 +142,9 @@ protected:
 
 class ExecutePlanActionServer {
 public:
-    ExecutePlanActionServer(ros::NodeHandle nh) :
+    ExecutePlanActionServer(ros::NodeHandle nh,const std::string &action_name) :
         nh_(nh),
-        action_server_(nh_, "execute_plan", boost::bind(&ExecutePlanActionServer::executeCallback, this, _1), false)
+        action_server_(nh_, action_name, boost::bind(&ExecutePlanActionServer::executeCallback, this, _1), false)
     {
         action_server_.start();
     }
