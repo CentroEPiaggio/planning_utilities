@@ -40,7 +40,7 @@ public:
      * @brief Destructor for TaskHandler, joins the execution thread.
      */
     ~TaskHandler() {
-        execution_thread_.join();
+        stopExecutionThread();
     }
 
     /**
@@ -207,6 +207,12 @@ public:
     bool isExecutionThreadRunning(){
         return run_thread;
     }
+    void stopExecutionThread() {
+        run_thread = false;
+        if (execution_thread_.joinable()) {
+            execution_thread_.join();
+        }
+    }   
 
 private:
     ros::NodeHandle& nh_;
@@ -277,6 +283,7 @@ int main(int argc, char** argv) {
         ros::spinOnce();  // Allow ROS to process callbacks
         ros::Duration(0.1).sleep();  // Sleep for a while
     }
+    task_handler.stopExecutionThread();
     nh.shutdown();
     return 0;
 }
