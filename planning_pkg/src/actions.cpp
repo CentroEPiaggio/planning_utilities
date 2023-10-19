@@ -224,12 +224,7 @@ void JointPlanActionServer::executeCallback(const planning_msgs::JointPlanGoalCo
         // Extract the Plan from the custom action request
         const moveit_msgs::RobotTrajectory& robot_traj = goal->motion_plan;
 
-        // // Create a Plan from the RobotTrajectory
-        // moveit::planning_interface::MoveGroupInterface group(this->planning_group);
-        // moveit::planning_interface::MoveGroupInterface::Plan plan;
-        // plan.trajectory_ = robot_traj;
-
-        // Use MoveIt to execute the Plan asynchronously
+        // Use MoveIt to execute the Plan
         moveit::planning_interface::MoveGroupInterface move_group(move_group_name);
         moveit::core::MoveItErrorCode exec_result = move_group.execute(robot_traj);
         

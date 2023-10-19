@@ -1,3 +1,6 @@
+#ifndef ACTIONS_H
+#define ACTIONS_H
+
 #include <ros/ros.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_msgs/RobotTrajectory.h>
@@ -176,3 +179,4 @@ private:
 //         // Implement the executeCallback specific to GraspAction here
 //     }
 // };
+#endif // ACTIONS_H

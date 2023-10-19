@@ -147,7 +147,7 @@ install(TARGETS planning_server
 add_dependencies(planning_server ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} planning_msgs_generate_messages_cpp)
 ## Add your action server source files
 
-add_executable(task_planner src/actions.cpp src/task_planner_node.cpp)
+add_executable(task_planner src/actions.cpp src/task_handler.cpp src/task_planner_node.cpp)
 
 target_link_libraries(task_planner
   ${catkin_LIBRARIES}
