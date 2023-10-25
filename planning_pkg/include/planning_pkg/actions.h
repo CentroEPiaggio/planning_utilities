@@ -1,3 +1,9 @@
+/**
+ * @file actions.h
+ * @brief Header file for various ROS action servers.
+ * @author Alessandro Palleschi
+ */
+
 #ifndef ACTIONS_H
 #define ACTIONS_H
 
@@ -12,19 +18,30 @@
 #include <planning_msgs/ExecutePlanAction.h>
 #include <Eigen/Dense>
 
-// Base class for Cartesian Plan Action Server
+/**
+ * @class CartesianPlanActionServer
+ * @brief Base class for Cartesian Plan Action Server.
+ */
 class CartesianPlanActionServer
 {
 public:
-    // Constructor for the Cartesian Plan Action Server
+    /**
+     * @brief Constructor for the Cartesian Plan Action Server.
+     * @param nh The ROS NodeHandle.
+     * @param action_name The name of the action server.
+     */
     CartesianPlanActionServer(ros::NodeHandle &nh, const std::string &action_name)
         : nh_(nh), action_server_(nh_, action_name, boost::bind(&CartesianPlanActionServer::executeCallback, this, _1), false)
     {
         action_server_.start();
     }
 
+    /**
+     * @brief Callback function for executing the Cartesian Plan action.
+     * @param goal The goal message for the action.
+     */
     void executeCallback(const planning_msgs::CartesianPlanGoalConstPtr &goal);
-    
+
     ~CartesianPlanActionServer() {};
 
 protected:
@@ -38,7 +55,10 @@ protected:
     std::string planning_group;
     trajectory_msgs::JointTrajectory computed_trajectory;
 
-    // Helper function to send feedback to the action client
+    /**
+     * @brief Helper function to send feedback to the action client.
+     * @param feedback The feedback message to be sent.
+     */
     void sendFeedback(const planning_msgs::CartesianPlanFeedback &feedback)
     {
         if (!preempted_)
@@ -47,51 +67,50 @@ protected:
         }
     }
 
-    bool isPreemptRequested()
-    {
-        return action_server_.isPreemptRequested();
-    }
-
-    void setPreempted()
-    {
-        preempted_ = true;
-        action_server_.setPreempted();
-    }
-
-    // Check if a given pose is really a null pose
+    /**
+     * @brief Check if a given pose is a null pose.
+     * @param pose The pose to check.
+     * @return True if the pose is null, false otherwise.
+     */
     inline bool isNullPose(const geometry_msgs::Pose &pose)
     {
         return (pose.position.x == 0.0 && pose.position.y == 0.0 && pose.position.z == 0.0 &&
                 pose.orientation.x == 0.0 && pose.orientation.y == 0.0 && pose.orientation.z == 0.0 && pose.orientation.w == 1.0);
     }
 
-    // Check if a given joint trajectory point is really null
+    /**
+     * @brief Check if a given joint trajectory point is null.
+     * @param joint_configuration The joint configuration to check.
+     * @return True if the joint configuration is null, false otherwise.
+     */
     inline bool isNullPose(const std::vector<double> &joint_configuration)
     {
         return joint_configuration.empty();
-        
-        // for (auto &q : joint_configuration)
-        // {
-        //     if (q != 0.0)
-        //     {
-        //         return false; // Found a non-zero value, not null
-        //     }
-        // }
-        // return true; // All values are zero, considered null
     }
 };
 
-// Base class for Joint Plan Action Server
+/**
+ * @class JointPlanActionServer
+ * @brief Base class for Joint Plan Action Server.
+ */
 class JointPlanActionServer
 {
 public:
-    // Constructor for the Joint Plan Action Server
+    /**
+     * @brief Constructor for the Joint Plan Action Server.
+     * @param nh The ROS NodeHandle.
+     * @param action_name The name of the action server.
+     */
     JointPlanActionServer(ros::NodeHandle &nh, const std::string &action_name)
         : nh_(nh), action_server_(nh_, action_name, boost::bind(&JointPlanActionServer::executeCallback, this, _1), false)
     {
         action_server_.start();
     }
 
+    /**
+     * @brief Callback function for executing the Joint Plan action.
+     * @param goal The goal message for the action.
+     */
     void executeCallback(const typename planning_msgs::JointPlanGoalConstPtr &goal);
     ~JointPlanActionServer() {};
 
@@ -107,7 +126,10 @@ protected:
 
     trajectory_msgs::JointTrajectory computed_trajectory;
 
-    // Helper function to send feedback to the action client
+    /**
+     * @brief Helper function to send feedback to the action client.
+     * @param feedback The feedback message to be sent.
+     */
     void sendFeedback(const planning_msgs::JointPlanFeedback &feedback)
     {
         if (!preempted_)
@@ -116,44 +138,45 @@ protected:
         }
     }
 
-    bool isPreemptRequested()
-    {
-        return action_server_.isPreemptRequested();
-    }
-
-    void setPreempted()
-    {
-        preempted_ = true;
-        action_server_.setPreempted();
-    }
-    // Check if a given joint trajectory point is really null
+    /**
+     * @brief Check if a given joint trajectory point is null.
+     * @param joint_configuration The joint configuration to check.
+     * @return True if the joint configuration is null, false otherwise.
+     */
     inline bool isNullPose(const std::vector<double> &joint_configuration)
     {
         return joint_configuration.empty();
-        
-        // for (auto &q : joint_configuration)
-        // {
-        //     if (q != 0.0)
-        //     {
-        //         return false; // Found a non-zero value, not null
-        //     }
-        // }
-        // return true; // All values are zero, considered null
     }
 };
 
-
+/**
+ * @class ExecutePlanActionServer
+ * @brief Class for executing a plan using an action server.
+ */
 class ExecutePlanActionServer {
 public:
-    ExecutePlanActionServer(ros::NodeHandle nh,const std::string &action_name) :
+    /**
+     * @brief Constructor for the Execute Plan Action Server.
+     * @param nh The ROS NodeHandle.
+     * @param action_name The name of the action server.
+     */
+    ExecutePlanActionServer(ros::NodeHandle nh, const std::string &action_name) :
         nh_(nh),
         action_server_(nh_, action_name, boost::bind(&ExecutePlanActionServer::executeCallback, this, _1), false)
     {
         action_server_.start();
     }
 
+    /**
+     * @brief Callback function for executing the Execute Plan action.
+     * @param goal The goal message for the action.
+     */
     void executeCallback(const planning_msgs::ExecutePlanGoalConstPtr &goal);
 
+    /**
+     * @brief Callback function for handling the completion of the trajectory execution.
+     * @param state The state of the goal execution.
+     */
     void doneCallback(const actionlib::SimpleClientGoalState& state) {
         ROS_INFO("Trajectory execution completed with result: %s", state.toString().c_str());
         // You can perform additional actions or publish feedback here
@@ -164,8 +187,9 @@ private:
     actionlib::SimpleActionServer<planning_msgs::ExecutePlanAction> action_server_;
 };
 
-
-// Uncomment and implement GraspActionServer as needed
+/**
+ * Uncomment and implement GraspActionServer as needed.
+ */
 // class GraspActionServer : public ActionServerBase<planning_msgs::GraspAction>
 // {
 // public:
@@ -173,10 +197,11 @@ private:
 //         : ActionServerBase<planning_msgs::GraspAction>(nh, action_name)
 //     {
 //     }
-
+//
 //     void executeCallback(const planning_msgs::GraspGoalConstPtr &goal) override
 //     {
 //         // Implement the executeCallback specific to GraspAction here
 //     }
 // };
+
 #endif // ACTIONS_H

@@ -1,3 +1,12 @@
+/**
+ * @file planning_server.cpp
+ * @brief Implementation of a ROS node that start action servers for Cartesian and Joint planning.
+ *
+ * @author Alessandro Palleschi
+ * @email alessandropalleschi94@gmail.com
+ */
+
+
 #include <ros/ros.h>
 #include "planning_pkg/actions.h"
 
