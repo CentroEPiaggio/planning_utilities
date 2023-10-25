@@ -15,9 +15,9 @@ In the field of robotics, path planning and execution are essential for enabling
 The `planning_pkg` package, a crucial component of the `planning_utilities` metapackage, contains several ROS action servers and task execution functionalities. Here are the key functionalities offered by the `planning_pkg` package:
 
 #### a. Action Servers
-   - **`CartesianPlanActionServer`**: This class serves as a base for a Cartesian Plan Action Server. It handles Cartesian path planning goals, manages trajectories, and executes them for specified planning groups.
+   - **`CartesianPlanActionServer`**: This class serves as a base for a Cartesian Plan Action Server. It handles Cartesian path planning goals, manages trajectories, and plans them for specified planning groups.
 
-   - **`JointPlanActionServer`**: Similar to `CartesianPlanActionServer`, this class serves as a base for a Joint Plan Action Server. It handles joint path planning goals, manages joint configurations, and executes them for specified planning groups.
+   - **`JointPlanActionServer`**: Similar to `CartesianPlanActionServer`, this class serves as a base for a Joint Plan Action Server. It handles joint path planning goals, manages joint configurations, and plans them for specified planning groups.
 
    - **`ExecutePlanActionServer`**: This class enables the execution of planned trajectories using an action server. It manages the execution of motion plans and provides callback functions for goal completion.
 
@@ -39,3 +39,43 @@ To use the `planning_utilities` metapackage in your ROS environment, follow thes
 3. **Launch the Nodes**: Use the provided launch files to start the ROS nodes. For example, you can use the `joint_plan_client.launch` file to launch the client nodes. This launch file loads task parameters from a YAML file and launches the client nodes responsible for task planning and execution.
 
 4. **Define Tasks**: Define tasks and goals in YAML format, as shown in the example below. These tasks can include Cartesian and joint planning goals and options for merging or not merging planned configurations.
+
+
+## Creating a YAML Task File
+
+To plan and execute a sequence of tasks using the `task_planner_node`, you need to create a YAML task file. Each task in the file represents a specific motion planning goal, which can be either Cartesian planning or joint planning. Below is a guide on how to build a YAML task file:
+
+```yaml
+tasks:
+  - type: "CartesianPlan"  # Task type: Cartesian planning
+    goal:
+      position:
+        x: 0.4            # Desired X-coordinate
+        y: 0.1            # Desired Y-coordinate
+        z: 0.4            # Desired Z-coordinate
+      orientation:
+        x: 0.0            # Desired X orientation
+        y: 1.0            # Desired Y orientation
+        z: 0.0            # Desired Z orientation
+        w: 0.0            # Desired W orientation
+    merge: false          # Whether to merge the new plan with the previous one
+    group: "panda_arm"    # Planning group to use
+
+  - type: "JointPlan"     # Task type: Joint planning
+    goal: [-1.0, -1.0, 0.0, 1.57, 1.3, 1.57, 0.0]  # Desired joint configuration
+    merge: false          # Whether to merge the new plan with the previous one
+    group: "panda_arm"    # Planning group to use
+
+# Continue with more tasks...
+
+Each task entry contains the following components:
+
+    type: Specifies the type of the planning task, which can be either "CartesianPlan" or "JointPlan."
+
+    goal: Depending on the task type, define the planning goal, including the desired position and orientation for Cartesian planning or a list of joint angles for joint planning.
+
+    merge: Indicates whether to merge the newly planned trajectory with the previous one for smoother transitions.
+
+    group: Specifies the planning group associated with the task.
+
+You can add more tasks to the YAML file to create a sequence of motion planning tasks to be executed in the order they appear.
