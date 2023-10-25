@@ -36,14 +36,27 @@ To use the `planning_utilities` metapackage in your ROS environment, follow thes
 
 2. **Build the Package**: Use `catkin_make` to build the package within your workspace.
 
-3. **Launch the Nodes**: Use the provided launch files to start the ROS nodes. For example, you can use the `joint_plan_client.launch` file to launch the client nodes. This launch file loads task parameters from a YAML file and launches the client nodes responsible for task planning and execution.
+3. **Define Tasks**: Define tasks and goals in YAML format, as shown in the example below. These tasks can include Cartesian and joint planning goals and options for merging or not merging planned configurations.
 
-4. **Define Tasks**: Define tasks and goals in YAML format, as shown in the example below. These tasks can include Cartesian and joint planning goals and options for merging or not merging planned configurations.
+4. **Launch the Nodes**: Use the provided launch files to start the ROS nodes. The launch file loads task parameters from a YAML file and launches the action server and client nodes responsible for task planning and execution.
+
 
 
 ## Creating a YAML Task File
 
-To plan and execute a sequence of tasks using the `task_planner_node`, you need to create a YAML task file. Each task in the file represents a specific motion planning goal, which can be either Cartesian planning or joint planning. Below is a guide on how to build a YAML task file:
+To plan and execute a sequence of tasks using the `task_planner_node`, you need to create a YAML task file. Each task in the file represents a specific motion planning goal, which can be either Cartesian planning or joint planning. 
+Each task entry contains the following components:
+
+1. **type**: Specifies the type of the planning task, which can be either "CartesianPlan" or "JointPlan."
+
+2. **goal**: Depending on the task type, define the planning goal, including the desired position and orientation for Cartesian planning or a list of joint angles for joint planning.
+
+3. **merge**: Indicates whether to use as initial condition for planning the current configuration of the final configuration planned by the previous trajectory.
+
+4. **group**: Specifies the planning group associated with the task.
+
+You can add more tasks to the YAML file to create a sequence of motion planning tasks to be executed in the order they appear.
+Below is a guide on how to build a YAML task file:
 
 ```yaml
 tasks:
@@ -67,15 +80,4 @@ tasks:
     group: "panda_arm"    # Planning group to use
 
 # Continue with more tasks...
-
-Each task entry contains the following components:
-
-    type: Specifies the type of the planning task, which can be either "CartesianPlan" or "JointPlan."
-
-    goal: Depending on the task type, define the planning goal, including the desired position and orientation for Cartesian planning or a list of joint angles for joint planning.
-
-    merge: Indicates whether to merge the newly planned trajectory with the previous one for smoother transitions.
-
-    group: Specifies the planning group associated with the task.
-
-You can add more tasks to the YAML file to create a sequence of motion planning tasks to be executed in the order they appear.
+```
